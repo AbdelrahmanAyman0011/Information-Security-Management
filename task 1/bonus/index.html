@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Password Cracker</title>
+    <script>
+        async function crackPassword() {
+            let resultDiv = document.getElementById("result");
+            resultDiv.innerHTML = "Cracking...";
+
+            let response = await fetch("http://127.0.0.1:5000/crack", { method: "POST" });
+            let data = await response.json();
+            resultDiv.innerHTML = `Method: ${data.method} <br> Password: ${data.password}`;
+        }
+    </script>
+</head>
+<body>
+    <h2>Password Cracker</h2>
+    <button onclick="crackPassword()">Start Attack</button>
+    <div id="result"></div>
+</body>
+</html>
