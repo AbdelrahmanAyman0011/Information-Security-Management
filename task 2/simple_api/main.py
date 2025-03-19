@@ -1,60 +1,174 @@
 from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+import os
+from datetime import timedelta
 
+# Initialize Flask App
 app = Flask(__name__)
 
-# In-memory user storage (Replace with a database in production)
-users = {}
+# Database Configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root@localhost/infosec_db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET", "supersecret")  # Use .env file in production
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=10)
 
-@app.route("/")
-def home():
-    return "Welcome to the Flask User API!", 200
+# Initialize Extensions
+db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
+jwt = JWTManager(app)
 
-# GET: Retrieve user by ID
-@app.route("/get-user/<user_id>", methods=["GET"])
-def get_user(user_id):
-    if user_id in users:
-        return jsonify(users[user_id]), 200
-    return jsonify({"error": "User not found"}), 404
+# Define Models
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
 
-# POST: Add a new user
-@app.route("/add-user", methods=["POST"])
-def add_user():
+class Product(db.Model):
+    pid = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    pname = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    price = db.Column(db.Float, nullable=False)
+    stock = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.current_timestamp())
+
+# Create Tables (Run Once)
+with app.app_context():
+    db.create_all()
+
+# Signup Route
+@app.route('/signup', methods=['POST'])
+def signup():
     data = request.json
-    user_id = str(data.get("user_id"))
-    
-    if not user_id:
-        return jsonify({"error": "User ID is required"}), 400
-    if user_id in users:
-        return jsonify({"error": "User already exists"}), 400
-    
-    users[user_id] = {
-        "user_id": user_id,
-        "name": data.get("name", "Unknown"),
-        "extra": data.get("extra", "")
-    }
-    return jsonify({"message": "User added successfully"}), 201
+    if not all(k in data for k in ["name", "username", "password"]):
+        return jsonify({"error": "Missing required fields"}), 400
 
-# PUT: Update user information
-@app.route("/update-user/<user_id>", methods=["PUT"])
-def update_user(user_id):
-    if user_id not in users:
+    if User.query.filter_by(username=data["username"]).first():
+        return jsonify({"error": "Username already exists"}), 409
+
+    hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
+
+    new_user = User(
+        name=data['name'],
+        username=data['username'],
+        password=hashed_password
+    )
+
+    db.session.add(new_user)
+    db.session.commit()
+    
+    return jsonify({"message": "User registered successfully"}), 201
+
+# Login Route
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    user = User.query.filter_by(username=data['username']).first()
+
+    if user and bcrypt.check_password_hash(user.password, data['password']):
+        token = create_access_token(identity=user.id)
+        return jsonify({"access_token": token}), 200
+
+    return jsonify({"error": "Invalid credentials"}), 401
+
+# Update User (Protected)
+@app.route('/users/<int:id>', methods=['PUT'])
+@jwt_required()
+def update_user(id):
+    current_user_id = get_jwt_identity()
+    
+    if current_user_id != id:
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    user = User.query.get(id)
+    if not user:
         return jsonify({"error": "User not found"}), 404
-    
+
     data = request.json
-    users[user_id].update({
-        "name": data.get("name", users[user_id]["name"]),
-        "extra": data.get("extra", users[user_id].get("extra", ""))
-    })
+    user.name = data.get('name', user.name)
+    user.username = data.get('username', user.username)
+
+    db.session.commit()
     return jsonify({"message": "User updated successfully"}), 200
 
-# DELETE: Remove a user
-@app.route("/delete-user/<user_id>", methods=["DELETE"])
-def delete_user(user_id):
-    if user_id not in users:
-        return jsonify({"error": "User not found"}), 404
+# Add Product
+@app.route('/products', methods=['POST'])
+@jwt_required()
+def add_product():
+    data = request.json
+    required_fields = ["pname", "price", "stock"]
     
-    del users[user_id]
-    return jsonify({"message": "User deleted successfully"}), 200
+    if not all(field in data for field in required_fields):
+        return jsonify({"error": "Missing required fields"}), 400
 
-if __name__ == "__main__":
+    new_product = Product(
+        pname=data['pname'],
+        description=data.get('description', ''),
+        price=data['price'],
+        stock=data['stock']
+    )
+
+    db.session.add(new_product)
+    db.session.commit()
+    return jsonify({"message": "Product added successfully"}), 201
+
+# Get All Products
+@app.route('/products', methods=['GET'])
+def get_products():
+    products = Product.query.all()
+    return jsonify([{
+        "pid": product.pid,
+        "pname": product.pname,
+        "description": product.description,
+        "price": product.price,
+        "stock": product.stock
+    } for product in products]), 200
+
+# Get Product by ID
+@app.route('/products/<int:pid>', methods=['GET'])
+def get_product(pid):
+    product = Product.query.get(pid)
+    if product:
+        return jsonify({
+            "pid": product.pid,
+            "pname": product.pname,
+            "description": product.description,
+            "price": product.price,
+            "stock": product.stock
+        }), 200
+    return jsonify({"error": "Product not found"}), 404
+
+# Update Product
+@app.route('/products/<int:pid>', methods=['PUT'])
+@jwt_required()
+def update_product(pid):
+    product = Product.query.get(pid)
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+
+    data = request.json
+    product.pname = data.get('pname', product.pname)
+    product.description = data.get('description', product.description)
+    product.price = data.get('price', product.price)
+    product.stock = data.get('stock', product.stock)
+
+    db.session.commit()
+    return jsonify({"message": "Product updated successfully"}), 200
+
+# Delete Product
+@app.route('/products/<int:pid>', methods=['DELETE'])
+@jwt_required()
+def delete_product(pid):
+    product = Product.query.get(pid)
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+
+    db.session.delete(product)
+    db.session.commit()
+    return jsonify({"message": "Product deleted successfully"}), 200
+
+# Run Flask
+if __name__ == '__main__':
     app.run(debug=True)
