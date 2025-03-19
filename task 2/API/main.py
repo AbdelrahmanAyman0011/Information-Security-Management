@@ -11,7 +11,7 @@ app = Flask(__name__)
 # Database Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root@localhost/infosec_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET", "supersecret")  # Use .env file in production
+app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET", "supersecret")  
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=10)
 
 # Initialize Extensions
