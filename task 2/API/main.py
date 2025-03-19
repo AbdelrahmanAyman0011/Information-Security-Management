@@ -68,7 +68,7 @@ def login():
     user = User.query.filter_by(username=data['username']).first()
 
     if user and bcrypt.check_password_hash(user.password, data['password']):
-        token = create_access_token(identity=user.id)
+        token = create_access_token(identity=str(user.id))  # Convert ID to string
         return jsonify({"access_token": token}), 200
 
     return jsonify({"error": "Invalid credentials"}), 401
@@ -169,6 +169,9 @@ def delete_product(pid):
     db.session.commit()
     return jsonify({"message": "Product deleted successfully"}), 200
 
-# Run Flask
+@app.route('/')
+def home():
+    return jsonify({"message": "Welcome to Abdelrahmna API"})
+
 if __name__ == '__main__':
     app.run(debug=True)
