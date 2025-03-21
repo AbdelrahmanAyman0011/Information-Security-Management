@@ -1,4 +1,4 @@
-# Information-Security-Management
+# Information-Security-Management (Task 2)
 
 ## Abdelrahman Ayman Saad Abdelhalim Mohamed
 
@@ -10,13 +10,13 @@ This project is a RESTful API built with Flask that provides user authentication
 
 ---
 
-## 🛠️ Requirements
+## Requirements
 
 - Python 3.x
 - MySQL Database
 - Flask and required dependencies (See `requirements.txt`)
 
-## 📦 Installation
+## Installation
 
 1. Clone the repository:
    ```sh
@@ -33,7 +33,7 @@ This project is a RESTful API built with Flask that provides user authentication
    pip install -r requirements.txt
    ```
 
-## 🛠️ Database Setup
+## Database Setup
 
 1. Make sure MySQL is running and create a database:
    ```sql
@@ -48,7 +48,7 @@ This project is a RESTful API built with Flask that provides user authentication
    flask db upgrade
    ```
 
-## 🚀 Running the Application
+## Running the Application
 
 1. Start the Flask app:
    ```sh
@@ -56,15 +56,15 @@ This project is a RESTful API built with Flask that provides user authentication
    ```
 2. The API will be available at: `http://127.0.0.1:5000/`
 
-## 📌 API Endpoints
+## API Endpoints
 
-### 🧑 User Authentication
+### User Authentication
 
 - **Signup:** `POST /signup`
 - **Login:** `POST /login`
 - **Update User (Protected):** `PUT /users/<id>`
 
-### 📦 Product Management
+### Product Management
 
 - **Add Product (Protected):** `POST /products`
 - **Get All Products:** `GET /products`
@@ -72,27 +72,13 @@ This project is a RESTful API built with Flask that provides user authentication
 - **Update Product (Protected):** `PUT /products/<pid>`
 - **Delete Product (Protected):** `DELETE /products/<pid>`
 
-## 🔑 JWT Authentication
+## JWT Authentication
 
 - The API uses JSON Web Tokens (JWT) for authentication.
 - Include the token in requests using the `Authorization: Bearer <token>` header.
 
-## 🛠️ Environment Variables
+## Author
 
-Create a `.env` file and define:
-
-```env
-JWT_SECRET=your_secret_key
-```
-
-## 📄 License
-
-This project is for educational purposes only. No license is provided.
-
-## ✨ Author
-
-- **Abdelrahman Ayman**
+- **Abdelrahman Ayman Saad**
 
 ---
-
-Happy Coding! 🚀
