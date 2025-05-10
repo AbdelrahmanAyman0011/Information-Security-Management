@@ -1,5 +1,9 @@
 # Log File Analysis Tool
 
+## 🚨 ALERT
+
+🔴 **IMPORTANT:** All extracted insights and detailed analysis results are saved in the `log_report` file. Make sure to review this file after running the script to see the full report.
+
 ## Overview
 
 This repository contains a Bash script for analyzing web server log files. The tool processes standard format access logs and generates comprehensive statistical reports, including request patterns, error analysis, and potential security insights.
